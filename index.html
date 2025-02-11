@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Tic-Tac-Toe</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        .board { display: grid; grid-template-columns: repeat(3, 100px); grid-gap: 5px; justify-content: center; margin-top: 20px; }
+        .cell { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; font-size: 2em; background: #ddd; cursor: pointer; }
+        .cell.taken { cursor: not-allowed; }
+        #message { font-size: 1.2em; margin-top: 10px; }
+        button { margin-top: 10px; padding: 10px; font-size: 1em; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>Multiplayer Tic-Tac-Toe</h1>
+    <p id="message">Waiting for opponent...</p>
+    <div class="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+    <button onclick="resetGame()">Restart Game</button>
+
+    <script>
+        // Replace with your Firebase config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const gameRef = db.ref("tic-tac-toe");
+
+        let player = null;
+        let currentPlayer = "X";
+
+        gameRef.once("value", snapshot => {
+            if (!snapshot.exists()) gameRef.set({ board: ["", "", "", "", "", "", "", "", ""], turn: "X", winner: null });
+        });
+
+        gameRef.on("value", snapshot => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            document.querySelectorAll(".cell").forEach((cell, index) => {
+                cell.textContent = data.board[index];
+                cell.classList.toggle("taken", data.board[index] !== "");
+            });
+
+            if (data.winner) {
+                document.getElementById("message").textContent = `${data.winner} wins!`;
+            } else {
+                document.getElementById("message").textContent = `Player ${data.turn}'s turn`;
+                currentPlayer = data.turn;
+            }
+        });
+
+        function joinGame() {
+            gameRef.once("value", snapshot => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                const xCount = data.board.filter(x => x === "X").length;
+                const oCount = data.board.filter(o => o === "O").length;
+
+                player = xCount > oCount ? "O" : "X";
+                document.getElementById("message").textContent = `You are Player ${player}`;
+            });
+        }
+
+        document.querySelectorAll(".cell").forEach(cell => {
+            cell.addEventListener("click", () => {
+                const index = cell.getAttribute("data-index");
+                gameRef.once("value", snapshot => {
+                    const data = snapshot.val();
+                    if (!data || data.board[index] || data.winner || data.turn !== player) return;
+
+                    data.board[index] = player;
+                    data.turn = player === "X" ? "O" : "X";
+                    data.winner = checkWinner(data.board);
+
+                    gameRef.set(data);
+                });
+            });
+        });
+
+        function checkWinner(board) {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            for (const pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+            }
+            return board.includes("") ? null : "Draw";
+        }
+
+        function resetGame() {
+            gameRef.set({ board: ["", "", "", "", "", "", "", "", ""], turn: "X", winner: null });
+        }
+
+        joinGame();
+    </script>
+
+</body>
+</html>
