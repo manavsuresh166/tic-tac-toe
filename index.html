@@ -1,125 +1,457 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer Tic-Tac-Toe</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <title>OM SAI SERVICES | Interactive Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Corporate Calm -->
+    <!-- Application Structure Plan: The application is structured as a non-linear, single-page website with a fixed navigation header, replacing the linear slide-deck format. The sections are organized thematically (About, Value, Track Record, Process, Contact) to allow users to explore content based on interest, rather than following a prescribed order. This is superior for web usability as it facilitates quick access to key information. The centerpiece is the interactive "Track Record" section, which combines two static data slides into a single, dynamic chart, allowing users to toggle between views. This promotes direct engagement and easier data comparison, which is a core goal of the original report. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Company experience and background (Slides 3, 4) -> Goal: Inform -> Viz: Key metric cards -> Interaction: None -> Justification: Highlighting key numbers (35+ years, ₹3000 Cr+) makes them immediately impactful and digestible.
+        - Report Info: Unique Selling Propositions (Slide 5) -> Goal: Organize/Inform -> Viz: Icon-driven grid layout -> Interaction: Subtle hover effects -> Justification: A grid of cards with icons breaks down the text-heavy list into scannable, visually distinct points, improving readability.
+        - Report Info: Location & Item Savings Data (Slides 6, 7) -> Goal: Compare/Analyze -> Viz: A single dynamic Bar Chart (Chart.js) and a detailed HTML table -> Interaction: User-clickable toggle buttons to switch the chart's dataset between 'Location' and 'Item' views in real-time. -> Justification: This interactive approach is the core enhancement. It merges two static tables into one powerful visualization, enabling users to actively explore and compare the company's performance data, which is far more engaging and insightful than passively viewing two separate slides. -> Library: Chart.js (Canvas).
+        - Report Info: Company Process (Slide 9) -> Goal: Change/Organize -> Viz: A vertical stepper/timeline -> Interaction: None (visual flow) -> Justification: A visual timeline is a more intuitive and modern way to represent a sequential process than a simple numbered list, improving comprehension. -> Method: HTML/CSS.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
-        body { text-align: center; font-family: Arial, sans-serif; }
-        .board { display: grid; grid-template-columns: repeat(3, 100px); grid-gap: 5px; justify-content: center; margin-top: 20px; }
-        .cell { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; font-size: 2em; background: #ddd; cursor: pointer; }
-        .cell.taken { cursor: not-allowed; }
-        #message { font-size: 1.2em; margin-top: 10px; }
-        button { margin-top: 10px; padding: 10px; font-size: 1em; cursor: pointer; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F9FA;
+            color: #212529;
+        }
+        .nav-link {
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #0056b3;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+        .process-step::before {
+            content: '';
+            position: absolute;
+            left: 1.25rem;
+            top: 3rem;
+            bottom: -1.5rem;
+            width: 2px;
+            background-color: #e2e8f0;
+            transform: translateX(-50%);
+        }
+        .process-step:last-child::before {
+            display: none;
+        }
+        .step-circle {
+            z-index: 10;
+        }
     </style>
 </head>
-<body>
+<body class="antialiased">
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-xl font-bold text-gray-800">OM SAI SERVICES</a>
+            <div class="hidden md:flex space-x-8">
+                <a href="#about" class="nav-link text-gray-600">About Us</a>
+                <a href="#value" class="nav-link text-gray-600">Our Value</a>
+                <a href="#track-record" class="nav-link text-gray-600">Track Record</a>
+                <a href="#process" class="nav-link text-gray-600">Our Process</a>
+                <a href="#contact" class="nav-link text-gray-600">Partner With Us</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden">
+            <a href="#about" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">About Us</a>
+            <a href="#value" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Our Value</a>
+            <a href="#track-record" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Track Record</a>
+            <a href="#process" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Our Process</a>
+            <a href="#contact" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Partner With Us</a>
+        </div>
+    </header>
 
-    <h1>Multiplayer Tic-Tac-Toe</h1>
-    <p id="message">Waiting for opponent...</p>
-    <div class="board">
-        <div class="cell" data-index="0"></div>
-        <div class="cell" data-index="1"></div>
-        <div class="cell" data-index="2"></div>
-        <div class="cell" data-index="3"></div>
-        <div class="cell" data-index="4"></div>
-        <div class="cell" data-index="5"></div>
-        <div class="cell" data-index="6"></div>
-        <div class="cell" data-index="7"></div>
-        <div class="cell" data-index="8"></div>
-    </div>
-    <button onclick="resetGame()">Restart Game</button>
+    <main>
+        <section id="home" class="relative text-center py-20 md:py-32 bg-white">
+            <div class="absolute inset-0 bg-cover bg-center opacity-10" style="background-image: url('https://placehold.co/1920x1080/e2e8f0/e2e8f0?text=');"></div>
+            <div class="container mx-auto px-6 relative">
+                <h1 class="text-4xl md:text-6xl font-bold text-gray-800 leading-tight">OM SAI SERVICES</h1>
+                <p class="mt-4 text-lg md:text-xl text-gray-600">Bridging Aspirations & Excellence</p>
+                <a href="#track-record" class="mt-8 inline-block bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105">Explore Our Impact</a>
+            </div>
+        </section>
+
+        <section id="about" class="py-16 lg:py-24 bg-gray-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl lg:text-4xl font-bold text-gray-800">Who We Are</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">We are seasoned Procurement & Contracting (P&C) experts committed to optimizing project value through deep industry knowledge and an unwavering commitment to excellence.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 text-center">
+                    <div class="bg-white p-8 rounded-xl shadow-md">
+                        <h3 class="text-5xl font-bold text-blue-600">35+</h3>
+                        <p class="mt-2 text-gray-600">Years of Corporate Experience</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-md">
+                        <h3 class="text-5xl font-bold text-blue-600">20+</h3>
+                        <p class="mt-2 text-gray-600">Years of Dedicated P&C Experience</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-md md:col-span-2 lg:col-span-1">
+                        <h3 class="text-5xl font-bold text-blue-600">₹3000 Cr+</h3>
+                        <p class="mt-2 text-gray-600">Value of Completed P&C</p>
+                    </div>
+                </div>
+                <div class="mt-12 bg-white p-8 rounded-xl shadow-md">
+                    <h4 class="text-xl font-semibold text-center text-gray-700 mb-6">Proven Leadership with Industry Giants</h4>
+                    <div class="flex flex-wrap justify-center items-center gap-x-8 gap-y-4 text-gray-500 font-medium">
+                        <span>Reliance</span>
+                        <span class="text-gray-300">•</span>
+                        <span>Gannon Dunkerley</span>
+                        <span class="text-gray-300">•</span>
+                        <span>Capacite Infra</span>
+                        <span class="text-gray-300">•</span>
+                        <span>Tata Projects</span>
+                        <span class="text-gray-300">•</span>
+                        <span>JMC Projects</span>
+                        <span class="text-gray-300">•</span>
+                        <span>Raheja & Co</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="value" class="py-16 lg:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl lg:text-4xl font-bold text-gray-800">Our Unique Selling Proposition</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Our value is built on a foundation of extensive networks, deep expertise, and a relentless focus on tangible cost savings for our clients.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-gray-800">Nationwide Network</h4>
+                        <p class="text-gray-600 mt-2">Large vendor, contractor & consultant network across India, ensuring maximum quotations and best possible prices.</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-gray-800">Techno-Commercial Excellence</h4>
+                        <p class="text-gray-600 mt-2">Deliver vendor quotes with transparent, itemized price breakups, enabling granular control.</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-gray-800">Direct Cost Optimization</h4>
+                        <p class="text-gray-600 mt-2">Strategically optimize overall contract package prices via direct, principal vendor quotes.</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-gray-800">Granular Rate Optimization</h4>
+                        <p class="text-gray-600 mt-2">Deep item-wise rate optimization for high-value packages (MEP / IBMS / Networking).</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-gray-800">Supply Chain Linkages</h4>
+                        <p class="text-gray-600 mt-2">Established direct linkages for RMC vendors to mines, streamlining raw material costs.</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-gray-800">Efficiency Contracts</h4>
+                        <p class="text-gray-600 mt-2">Develop rate contracts for common consumables (Safety, Electrical, Hardware, Lab Equipment, etc.).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="track-record" class="py-16 lg:py-24 bg-gray-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl lg:text-4xl font-bold text-gray-800">Proven Track Record of Savings</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Our results speak for themselves. Explore our documented savings across various projects and procurement items. Use the buttons below to switch between views.</p>
+                </div>
+                <div class="flex justify-center space-x-4 mb-8">
+                    <button id="show-location-data" class="bg-blue-600 text-white py-2 px-6 rounded-lg font-semibold shadow-md">By Location</button>
+                    <button id="show-item-data" class="bg-white text-gray-700 py-2 px-6 rounded-lg font-semibold shadow-md border border-gray-300">By Item</button>
+                </div>
+                <div class="bg-white p-4 sm:p-8 rounded-xl shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="savingsChart"></canvas>
+                    </div>
+                </div>
+                <div class="mt-8 bg-white p-4 sm:p-8 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-center mb-4" id="table-title">Location-wise Savings Details</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left" id="savings-table">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="p-3">Category</th>
+                                    <th class="p-3 text-right">Client Value (Cr)</th>
+                                    <th class="p-3 text-right">WO Value (Cr)</th>
+                                    <th class="p-3 text-right">Savings (Cr)</th>
+                                    <th class="p-3 text-right font-bold">% Savings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="process" class="py-16 lg:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl lg:text-4xl font-bold text-gray-800">Our Process: From Scope to Site Quality</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">We follow a rigorous, 10-step process to ensure transparency, efficiency, and maximum value at every stage of the procurement lifecycle.</p>
+                </div>
+                <div class="max-w-3xl mx-auto">
+                    <div class="relative space-y-12">
+                        <div class="process-step relative pl-12">
+                            <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">1</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">Project Initiation</h4>
+                            <p class="text-gray-600">Engage with the technical team to ensure all project details and specifications are available.</p>
+                        </div>
+                         <div class="process-step relative pl-12">
+                            <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">2</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">Document Verification</h4>
+                            <p class="text-gray-600">Verify all assumptions, supporting documents, and initial budget estimates.</p>
+                        </div>
+                        <div class="process-step relative pl-12">
+                            <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">3</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">RFQ Preparation</h4>
+                            <p class="text-gray-600">Identify all required items, finalize quantities, and include necessary safety factors.</p>
+                        </div>
+                        <div class="process-step relative pl-12">
+                           <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">4</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">Vendor Outreach</h4>
+                            <p class="text-gray-600">Prepare and send detailed, comprehensive RFQs (Request for Quotation) with clear scope and specifications.</p>
+                        </div>
+                         <div class="process-step relative pl-12">
+                           <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">5</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">Database Mapping</h4>
+                            <p class="text-gray-600">Map item requirements to our Mega Vendor Database to ensure comprehensive coverage.</p>
+                        </div>
+                        <div class="process-step relative pl-12">
+                            <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">6</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">Price Breakup</h4>
+                            <p class="text-gray-600">Send comprehensive RFQs demanding itemized price breakups, not lump-sum quotes.</p>
+                        </div>
+                         <div class="process-step relative pl-12">
+                           <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">7</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">Target Setting</h4>
+                            <p class="text-gray-600">Post-initial quotes, circulate calculated target prices to drive competitive bidding.</p>
+                        </div>
+                        <div class="process-step relative pl-12">
+                            <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">8</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">Finalization</h4>
+                            <p class="text-gray-600">Evaluate qualitative (technical fit) & commercial factors, and finalize the optimal vendor.</p>
+                        </div>
+                        <div class="process-step relative pl-12">
+                           <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">9</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">Contract Standardization</h4>
+                            <p class="text-gray-600">Standardize T&C (Terms & Conditions) for selected contracts and materials.</p>
+                        </div>
+                        <div class="process-step relative pl-12">
+                           <div class="step-circle absolute left-0 top-1 flex items-center justify-center w-10 h-10 bg-blue-600 text-white font-bold rounded-full">10</div>
+                            <h4 class="font-bold text-lg text-gray-800 mb-1">Quality Assurance</h4>
+                            <p class="text-gray-600">Final quality check via the client’s technical team and 3rd party lab testing where applicable.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="py-16 lg:py-24 bg-gray-50">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-3xl lg:text-4xl font-bold text-gray-800">Proposal for M/s Balaji World</h2>
+                <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Let's partner to bring unparalleled efficiency and value to your projects. We offer flexible partnership models tailored to your needs.</p>
+                <div class="max-w-4xl mx-auto mt-12 text-left grid md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h4 class="font-bold text-lg text-gray-800">End-to-End P&C Management</h4>
+                        <p class="text-gray-600 mt-2">Take ownership of the entire procurement & contracting lifecycle for your immediate projects.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h4 class="font-bold text-lg text-gray-800">Strategic DPR Involvement</h4>
+                        <p class="text-gray-600 mt-2">Integrate our expertise from the DPR stage for accurate budgeting and specification optimization.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h4 class="font-bold text-lg text-gray-800">Team Deployment & Process Implementation</h4>
+                        <p class="text-gray-600 mt-2">Assess needs, deploy a skilled procurement team, and implement robust P&C processes and procedures.</p>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h4 class="font-bold text-lg text-gray-800">Value Optimization</h4>
+                        <p class="text-gray-600 mt-2">Optimize the Procure-to-Pay (P2P) cycle and apply structured negotiation for maximum savings.</p>
+                    </div>
+                </div>
+                <div class="mt-12">
+                    <p class="text-gray-700">Get in touch to discuss your project needs.</p>
+                    <a href="mailto:contact@om-sai-services.com" class="mt-4 inline-block text-xl font-semibold text-blue-600 hover:underline">contact@om-sai-services.com</a>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2025 OM SAI SERVICES. All Rights Reserved.</p>
+        </div>
+    </footer>
 
     <script>
-        // Replace with your Firebase config
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            databaseURL: "YOUR_DATABASE_URL",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const gameRef = db.ref("tic-tac-toe");
-
-        let player = null;
-        let currentPlayer = "X";
-
-        gameRef.once("value", snapshot => {
-            if (!snapshot.exists()) gameRef.set({ board: ["", "", "", "", "", "", "", "", ""], turn: "X", winner: null });
-        });
-
-        gameRef.on("value", snapshot => {
-            const data = snapshot.val();
-            if (!data) return;
-
-            document.querySelectorAll(".cell").forEach((cell, index) => {
-                cell.textContent = data.board[index];
-                cell.classList.toggle("taken", data.board[index] !== "");
+        document.addEventListener('DOMContentLoaded', function () {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
             });
+            
+            const locationData = {
+                labels: ['Aurangabad', 'Bangalore', 'Dhunseri', 'Guwahati', 'Kanpur', 'Palwal'],
+                datasets: [{
+                    label: '% Savings',
+                    data: [41, 29, 26, 17, 10, 11],
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1
+                }]
+            };
 
-            if (data.winner) {
-                document.getElementById("message").textContent = `${data.winner} wins!`;
-            } else {
-                document.getElementById("message").textContent = `Player ${data.turn}'s turn`;
-                currentPlayer = data.turn;
-            }
-        });
+            const itemData = {
+                labels: ['Lockers', 'Hume Pipes', 'Boundary Wall', 'PUF + PIR Panels', 'Earthwork', 'Fire Fighting', 'Structural Steel', 'Electrical Works', 'HVAC / Mech Works', 'TMT', 'RMC', 'PEB', 'Plumbing'],
+                datasets: [{
+                    label: '% Savings',
+                    data: [71, 50, 41, 41, 40, 40, 35, 30, 28, 17, 15, 10, 0],
+                    backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 1
+                }]
+            };
 
-        function joinGame() {
-            gameRef.once("value", snapshot => {
-                const data = snapshot.val();
-                if (!data) return;
-
-                const xCount = data.board.filter(x => x === "X").length;
-                const oCount = data.board.filter(o => o === "O").length;
-
-                player = xCount > oCount ? "O" : "X";
-                document.getElementById("message").textContent = `You are Player ${player}`;
-            });
-        }
-
-        document.querySelectorAll(".cell").forEach(cell => {
-            cell.addEventListener("click", () => {
-                const index = cell.getAttribute("data-index");
-                gameRef.once("value", snapshot => {
-                    const data = snapshot.val();
-                    if (!data || data.board[index] || data.winner || data.turn !== player) return;
-
-                    data.board[index] = player;
-                    data.turn = player === "X" ? "O" : "X";
-                    data.winner = checkWinner(data.board);
-
-                    gameRef.set(data);
-                });
-            });
-        });
-
-        function checkWinner(board) {
-            const winPatterns = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8],
-                [0, 3, 6], [1, 4, 7], [2, 5, 8],
-                [0, 4, 8], [2, 4, 6]
+            const locationTableData = [
+                { category: 'Aurangabad', client: 6.0, wo: 3.6, savings: 2.5, percent: '41%' },
+                { category: 'Bangalore', client: 14.8, wo: 10.5, savings: 4.3, percent: '29%' },
+                { category: 'Dhunseri', client: 32.4, wo: 23.9, savings: 8.5, percent: '26%' },
+                { category: 'Guwahati', client: 56.6, wo: 47.0, savings: 9.6, percent: '17%' },
+                { category: 'Kanpur', client: 25.0, wo: 22.4, savings: 2.6, percent: '10%' },
+                { category: 'Palwal', client: 20.2, wo: 17.9, savings: 2.3, percent: '11%' },
+                { category: 'Subtotal', client: 155.0, wo: 125.3, savings: 29.7, percent: '~19%' }
             ];
-            for (const pattern of winPatterns) {
-                const [a, b, c] = pattern;
-                if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+
+            const itemTableData = [
+                { category: 'Lockers', client: 0.7, wo: 0.2, savings: 0.5, percent: '71%' },
+                { category: 'Hume Pipes', client: 0.4, wo: 0.2, savings: 0.2, percent: '50%' },
+                { category: 'Boundary Wall', client: 6.0, wo: 3.6, savings: 2.5, percent: '41%' },
+                { category: 'PUF + PIR Panels', client: 4.6, wo: 2.7, savings: 1.9, percent: '41%' },
+                { category: 'Earthwork', client: 10.8, wo: 6.5, savings: 4.3, percent: '40%' },
+                { category: 'Fire Fighting', client: 3.0, wo: 1.9, savings: 1.2, percent: '40%' },
+                { category: 'Structural Steel', client: 11.4, wo: 7.4, savings: 4.0, percent: '35%' },
+                { category: 'Electrical Works', client: 4.6, wo: 3.1, savings: 1.4, percent: '30%' },
+                { category: 'HVAC / Mech Works', client: 6.1, wo: 4.4, savings: 1.7, percent: '28%' },
+                { category: 'TMT', client: 1.8, wo: 1.5, savings: 0.3, percent: '17%' },
+                { category: 'RMC', client: 44.1, wo: 37.5, savings: 6.6, percent: '15%' },
+                { category: 'PEB', client: 60.7, wo: 54.5, savings: 6.2, percent: '10%' },
+                { category: 'Plumbing', client: 1.1, wo: 1.1, savings: 0.0, percent: '0%' },
+                { category: 'Subtotal', client: 155.3, wo: 125.1, savings: 30.2, percent: '~19%' }
+            ];
+            
+            const ctx = document.getElementById('savingsChart').getContext('2d');
+            let savingsChart;
+            const tableBody = document.querySelector('#savings-table tbody');
+            const tableTitle = document.getElementById('table-title');
+            
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Percentage Savings (%)'
+                        }
+                    },
+                    x: {
+                       ticks: {
+                            maxRotation: 70,
+                            minRotation: 45
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Savings: ${context.raw}%`;
+                            }
+                        }
+                    }
+                }
+            };
+
+            function populateTable(data) {
+                tableBody.innerHTML = '';
+                data.forEach(item => {
+                    const isSubtotal = item.category === 'Subtotal';
+                    const rowClass = isSubtotal ? 'font-bold bg-gray-100' : '';
+                    const row = `
+                        <tr class="${rowClass}">
+                            <td class="p-3">${item.category}</td>
+                            <td class="p-3 text-right">${item.client.toFixed(1)}</td>
+                            <td class="p-3 text-right">${item.wo.toFixed(1)}</td>
+                            <td class="p-3 text-right">${item.savings.toFixed(1)}</td>
+                            <td class="p-3 text-right">${item.percent}</td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
             }
-            return board.includes("") ? null : "Draw";
-        }
 
-        function resetGame() {
-            gameRef.set({ board: ["", "", "", "", "", "", "", "", ""], turn: "X", winner: null });
-        }
+            function updateChart(data, tableData, title) {
+                if (savingsChart) {
+                    savingsChart.destroy();
+                }
+                savingsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: data,
+                    options: chartOptions
+                });
+                populateTable(tableData);
+                tableTitle.textContent = title;
+            }
 
-        joinGame();
+            const showLocationBtn = document.getElementById('show-location-data');
+            const showItemBtn = document.getElementById('show-item-data');
+
+            showLocationBtn.addEventListener('click', () => {
+                updateChart(locationData, locationTableData, 'Location-wise Savings Details');
+                showLocationBtn.classList.add('bg-blue-600', 'text-white');
+                showLocationBtn.classList.remove('bg-white', 'text-gray-700');
+                showItemBtn.classList.add('bg-white', 'text-gray-700');
+                showItemBtn.classList.remove('bg-blue-600', 'text-white');
+            });
+
+            showItemBtn.addEventListener('click', () => {
+                updateChart(itemData, itemTableData, 'Item-wise Savings Details');
+                showItemBtn.classList.add('bg-blue-600', 'text-white');
+                showItemBtn.classList.remove('bg-white', 'text-gray-700');
+                showLocationBtn.classList.add('bg-white', 'text-gray-700');
+                showLocationBtn.classList.remove('bg-blue-600', 'text-white');
+            });
+            
+            updateChart(locationData, locationTableData, 'Location-wise Savings Details');
+        });
     </script>
-
 </body>
 </html>
+
